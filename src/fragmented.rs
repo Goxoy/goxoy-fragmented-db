@@ -1,7 +1,5 @@
 use std::{collections::HashMap, fs, time::{SystemTime, UNIX_EPOCH}, thread};
-
 use goxoy_key_value::key_value::KeyValueDb;
-
 #[derive(Debug)]
 pub struct Fragmented {
     list:HashMap<String,String>,
@@ -19,19 +17,46 @@ impl Fragmented {
         
         let paths = fs::read_dir(tmp_dir);
         if paths.is_ok(){
+            let mut file_list=vec![];
             let paths=paths.unwrap();
             for path in paths {
                 if path.is_ok(){
-                    println!("Name: {}", path.unwrap().path().display())
+                    let f_name=path.unwrap().path().display().to_string();
+                    file_list.push(f_name.clone());
                 }else{
-                    println!("ERR : {}", path.unwrap().path().display())
+                    println!("ERR : {}", path.unwrap().path().display());
                 }
-            }        
+            }
+            file_list.sort();
+            for item in file_list{
+                let mut delete_file=true;
+                let contents_result = fs::read_to_string(item.clone());
+                if contents_result.is_ok(){
+                    let contents=contents_result.unwrap();
+                    let item_part:Vec<String>= contents.split("||").map(|s| s.to_string()).collect();
+                    if item_part.len()==2{
+                        let key_result=hex::decode(&item_part[0]);
+                        let value_result=hex::decode(&item_part[1]);
+                        if key_result.is_ok() && value_result.is_ok(){
+                            let key_val=String::from_utf8(key_result.unwrap());
+                            let value_val=String::from_utf8(value_result.unwrap());
+                            if key_val.is_ok() && value_val.is_ok(){
+                                Fragmented::set_to_sub_db(
+                                    &key_val.unwrap(),
+                                    &value_val.unwrap(),
+                                    common_path.clone(),
+                                    item.clone()
+                                );
+                                delete_file=false;
+                            }
+                        }
+                    }
+                }
+                if delete_file==true{
+                    _ = fs::remove_file(&item.clone());
+                }
+            }
         }
-
-        let mut temp_db_name=common_path.clone();
-        temp_db_name.push_str("temp_data");
-
         Fragmented{
             list:HashMap::new(),
             path:common_path.clone(),
@@ -108,9 +133,11 @@ fn full_test() {
             
         }
     }
+    /*
     let dd=kv_obj.get_value("key-degeri-3");
     dbg!(dd);
     let dd=kv_obj.get_value("key-degeri-5");
     dbg!(dd);
+    */
     assert!(true)
 }
