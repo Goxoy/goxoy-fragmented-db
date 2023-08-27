@@ -7,3 +7,5 @@ edition = "2021"
 
 [dependencies]
 goxoy-key-value = "0.1.2"
+goxoy-hash = "0.0.1"
+hex = "0.4.3"
