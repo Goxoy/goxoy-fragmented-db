@@ -1,7 +1,12 @@
 [package]
 name = "goxoy-fragmented-db"
+authors = ["Omer GOKSOY <goksoy.omer@gmail.com>"]
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+repository = "https://github.com/Goxoy/goxoy-fragmented-db/"
+keywords = ["key-value-db","fragmented-db"]
+description = "Goxoy Fragmented DB"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
