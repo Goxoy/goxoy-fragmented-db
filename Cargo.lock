@@ -142,6 +142,7 @@ version = "0.1.1"
 dependencies = [
  "goxoy-hash",
  "goxoy-key-value",
+ "hex",
 ]
 
 [[package]]
@@ -181,6 +182,12 @@ checksum = "312f66718a2d7789ffef4f4b7b213138ed9f1eb3aa1d0d82fc99f88fb3ffd26f"
 dependencies = [
  "hashbrown",
 ]
+
+[[package]]
+name = "hex"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
 name = "libc"
