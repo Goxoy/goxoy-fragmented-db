@@ -13,4 +13,4 @@ description = "Goxoy Fragmented DB"
 [dependencies]
 goxoy-key-value = "0.1.2"
 goxoy-hash = "0.0.1"
-hex = "0.4.3"
+#hex = "0.4.3"
