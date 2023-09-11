@@ -2,12 +2,13 @@ use std::{collections::HashMap, fs, time::{SystemTime, UNIX_EPOCH}, thread};
 use goxoy_key_value::key_value::KeyValueDb;
 #[derive(Debug)]
 pub struct Fragmented {
+    fragmented_db_count:u16,
     list:HashMap<String,String>,
     path:String
 }
 
 impl Fragmented {
-    pub fn new() -> Self {
+    pub fn new(fragmented_db_count:u16) -> Self {
         let common_path=String::from("./db/");
         _ = fs::create_dir_all(&common_path.clone());
         
@@ -42,6 +43,7 @@ impl Fragmented {
                             let value_val=String::from_utf8(value_result.unwrap());
                             if key_val.is_ok() && value_val.is_ok(){
                                 Fragmented::set_to_sub_db(
+                                    fragmented_db_count,
                                     &key_val.unwrap(),
                                     &value_val.unwrap(),
                                     common_path.clone(),
@@ -58,6 +60,7 @@ impl Fragmented {
             }
         }
         Fragmented{
+            fragmented_db_count:fragmented_db_count,
             list:HashMap::new(),
             path:common_path.clone(),
         }
@@ -81,8 +84,9 @@ impl Fragmented {
             let value_tmp=String::from(value);
             let db_path_tmp=self.path.clone();
             let tmp_file_cloned=tmp_file_path.clone();
+            let tmp_fragmented_db_count=self.fragmented_db_count;
             thread::spawn(move ||{
-                Fragmented::set_to_sub_db(&key_tmp,&value_tmp,db_path_tmp,tmp_file_cloned);
+                Fragmented::set_to_sub_db(tmp_fragmented_db_count,&key_tmp,&value_tmp,db_path_tmp,tmp_file_cloned);
             });
             return true;
         }
@@ -95,7 +99,7 @@ impl Fragmented {
                 return String::from(result.unwrap());
             }
         }
-        let path_tmp=Fragmented::get_key_db_name(key,self.path.clone());
+        let path_tmp=Fragmented::get_key_db_name(self.fragmented_db_count,key,self.path.clone());
         let mut tmp_db_obj=KeyValueDb::new(&path_tmp);
         let result_val=tmp_db_obj.get_value(&key);
         tmp_db_obj.close();
@@ -104,16 +108,27 @@ impl Fragmented {
         }
         return String::from("");
     }
-    pub fn get_key_db_name(key:&str,path_val:String)->String{
-        let hash_result=goxoy_hash::hash::Hash::calculate(goxoy_hash::hash::HashKind::SHA1, &key.clone());
-        let first_2_letter=&hash_result[..2];
-        let mut path_tmp=path_val.clone();
-        path_tmp.push_str("data_");
-        path_tmp.push_str(first_2_letter);
-        return path_tmp;
+    pub fn remove(&mut self,key:&str){
+        self.delete(key);
     }
-    pub fn set_to_sub_db(key:&str,value:&str,path_val:String,tmp_file:String){
-        let path_tmp=Fragmented::get_key_db_name(key,path_val);
+    pub fn delete(&mut self,key:&str){
+        self.list.remove(key);
+        let path_tmp=Fragmented::get_key_db_name(self.fragmented_db_count,key,self.path.clone());
+        let mut tmp_db_obj=KeyValueDb::new(&path_tmp);
+        tmp_db_obj.delete(&key);
+        tmp_db_obj.close();
+    }
+    pub fn get_key_db_name(fragmented_db_count:u16,key:&str,path_val:String)->String{
+        let hash_result=goxoy_hash::hash::Hash::calculate(goxoy_hash::hash::HashKind::SHA1, &key.clone());
+        let converted_hex = u64::from_str_radix(&hash_result[..10], 16);
+        let mut part_no=u64::MAX;
+        if converted_hex.is_ok(){
+            part_no=converted_hex.unwrap();
+        }
+        format!("{}data_{}",path_val, format!("{:01$}", (part_no % (fragmented_db_count as u64)), fragmented_db_count.to_string().len()))
+    }
+    pub fn set_to_sub_db(fragmented_db_count:u16,key:&str,value:&str,path_val:String,tmp_file:String){
+        let path_tmp=Fragmented::get_key_db_name(fragmented_db_count, key,path_val);
         let mut tmp_db_obj=KeyValueDb::new(&path_tmp);
         tmp_db_obj.set_value(&key, &value);
         tmp_db_obj.close();
@@ -124,20 +139,9 @@ impl Fragmented {
 #[test]
 fn full_test() {
     // cargo test  --lib full_test -- --nocapture
-    let mut kv_obj=Fragmented::new();
+    let mut kv_obj=Fragmented::new(100);
     kv_obj.set_value("key-degeri-1","value-degeri-1");
     kv_obj.set_value("key-degeri-2","value-degeri-2");
     kv_obj.set_value("key-degeri-3","value-degeri-3");
-    for _ in 0..1_000_000{
-        for _ in 0..100{
-            
-        }
-    }
-    /*
-    let dd=kv_obj.get_value("key-degeri-3");
-    dbg!(dd);
-    let dd=kv_obj.get_value("key-degeri-5");
-    dbg!(dd);
-    */
-    assert!(true)
+    assert_eq!("value-degeri-1".to_string(),kv_obj.get_value("key-degeri-1"))
 }
